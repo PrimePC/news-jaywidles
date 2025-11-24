@@ -1,145 +1,106 @@
-/* START OF FILE script.js */
-
-// --- 1. Clock & Date Functions ---
-
-function updateTime() {
-    const timeElement = document.getElementById('current-time');
-    const dateElement = document.getElementById('current-date');
-
-    const now = new Date();
-    
-    // Format Time for EST
-    const timeOptions = { 
-        timeZone: 'America/New_York', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-    };
-    const timeString = new Intl.DateTimeFormat('en-US', timeOptions).format(now);
-    timeElement.innerText = `${timeString} EST`;
-
-    // Format Date
-    const dateOptions = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    };
-    const dateString = now.toLocaleDateString('en-US', dateOptions);
-    dateElement.innerText = dateString;
-}
-
-// Update clock every second
-setInterval(updateTime, 1000);
-updateTime(); // Run immediately
-
-// --- 2. Data Management ---
-
-// This mimics the JSON structure your n8n workflow should output.
-// If fetch fails, this data shows up.
-const fallbackData = {
-    world: [
-        { title: "Global Summit Reaches Agreement", summary: "World leaders have agreed on a comprehensive framework for digital trade safety." },
-        { title: "Energy Breakthrough in Europe", summary: "Scientists in France announce a new efficiency record for solar storage cells." }
-    ],
-    us: [
-        { title: "Market Rally Continues", summary: "US Markets closed higher today driven by tech sector performance." },
-        { title: "Senate Passes New Infrastructure Bill", summary: "The long-awaited bill moves to the house, promising upgrades to national grid systems." }
-    ],
-    tech: [
-        { title: "AI Model Generates Entire Codebase", summary: "A new startup claims their AI can write enterprise ERP software in minutes." },
-        { title: "Quantum Computing Milestone", summary: "Researchers achieve stable qubits for 5 minutes, shattering previous records." }
-    ],
-    finance: [
-        { title: "Crypto Regulation Talks", summary: "Federal agencies meet to discuss standardizing stablecoin issuance." },
-        { title: "Housing Market Trends", summary: "Analysts predict a cooling period for Q3 as interest rates stabilize." }
-    ],
-    conspiracies: [
-        { title: "Signal Anomalies Detected", summary: "Amateur radio enthusiasts report strange patterns from the northern hemisphere." },
-        { title: "The Underground City Theory", summary: "New scans of Antarctica reveal geometric density structures beneath the ice." }
-    ]
-};
-
-let newsData = fallbackData; // Default to fallback
-
-async function fetchNews() {
-    try {
-        // Point this to where n8n saves the file
-        const response = await fetch('latest-news.json?t=' + new Date().getTime()); 
-        if (!response.ok) throw new Error("JSON not found");
-        const data = await response.json();
-        newsData = data;
-        console.log("Live news data loaded.");
-    } catch (error) {
-        console.log("Using fallback/cached data.");
-    }
-    // Render the default category (World) after fetch attempt
-    renderCategory('world'); 
-}
-
-// --- 3. UI Rendering ---
-
-const container = document.getElementById('news-container');
-const buttons = document.querySelectorAll('.nav-btn');
-
-function renderCategory(category) {
-    container.innerHTML = ''; // Clear current content
-    
-    // Get data for category
-    const items = newsData[category] || [];
-
-    if(items.length === 0) {
-        container.innerHTML = `<div class="loading-state">No news available for this category today.</div>`;
-        return;
-    }
-
-    // Create cards
-    items.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'news-card';
-        // Stagger animation delay
-        card.style.animationDelay = `${index * 0.1}s`;
-        
-        const h2 = document.createElement('h2');
-        h2.innerText = item.title;
-        
-        const p = document.createElement('p');
-        p.innerText = item.summary;
-        
-        card.appendChild(h2);
-        card.appendChild(p);
-        container.appendChild(card);
-    });
-}
-
-// --- 4. Event Listeners ---
-
-buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Remove active class from all
-        buttons.forEach(b => b.classList.remove('active'));
-        // Add active to clicked
-        btn.classList.add('active');
-        
-        const category = btn.getAttribute('data-category');
-        renderCategory(category);
-    });
-});
-
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    fetchNews();
+    const newsContainer = document.getElementById('news-container');
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const dateDisplay = document.getElementById('current-date');
+    const timeDisplay = document.getElementById('current-time');
     
-    // Mouse Glow Effect (Same as main site)
-    const mainContainer = document.querySelector('.main-container');
-    mainContainer.addEventListener('mousemove', (e) => {
-        const cards = document.querySelectorAll('.news-card');
-        for(const card of cards) {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            card.style.setProperty('--mouse-x', `${x}px`);
-            card.style.setProperty('--mouse-y', `${y}px`);
+    let newsData = {};
+
+    // 1. Time and Date Display
+    function updateDateTime() {
+        const now = new Date();
+        // Date: Monday, Nov 24, 2024
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+        dateDisplay.innerText = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
+        
+        // Time: 14:05 EST
+        const timeOptions = { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' };
+        timeDisplay.innerText = now.toLocaleTimeString('en-US', timeOptions);
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    // 2. Fetch Data
+    async function fetchNews() {
+        try {
+            // Add a timestamp to prevent caching
+            const response = await fetch('news_data.json?t=' + new Date().getTime());
+            if (!response.ok) throw new Error("Could not load news data");
+            
+            const rawData = await response.json();
+            
+            // Determine structure based on N8N output
+            // We expect rawData to look like: { categories: { world: "...", us: "..." } } 
+            // Or flat: { world_news: "...", us_news: "..." }
+            newsData = rawData.categories || rawData; 
+
+            // Render default category (World)
+            renderNews('world');
+            
+        } catch (error) {
+            console.error(error);
+            newsContainer.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Uplink Offline. Unable to fetch daily summary.</p>
+                </div>`;
         }
+    }
+
+    // 3. Render Content
+    function renderNews(categoryKey) {
+        // Map button data-category to JSON keys
+        const keyMap = {
+            'world': 'world_news',
+            'us': 'us_news',
+            'tech': 'tech_news',
+            'finance': 'financial_news',
+            'conspiracies': 'conspiracies'
+        };
+
+        const jsonKey = keyMap[categoryKey];
+        const content = newsData[jsonKey];
+
+        // Clear container
+        newsContainer.innerHTML = '';
+        newsContainer.style.opacity = 0;
+
+        setTimeout(() => {
+            if (!content) {
+                newsContainer.innerHTML = `<p>No data available for ${categoryKey.toUpperCase()}.</p>`;
+            } else {
+                // Convert Markdown-style bullets to HTML if N8N sends markdown
+                const htmlContent = parseMarkdown(content);
+                newsContainer.innerHTML = `<div class="news-content">${htmlContent}</div>`;
+            }
+            newsContainer.style.opacity = 1;
+        }, 200);
+    }
+
+    // Helper: Simple Markdown to HTML parser
+    function parseMarkdown(text) {
+        if (!text) return "";
+        // Convert **Bold** to <strong>
+        let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Convert - Bullet to <li>
+        html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+        // Convert new lines to <br> or wrap list
+        return `<ul>${html}</ul>`; 
+    }
+
+    // 4. Tab Switching
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all
+            navButtons.forEach(b => b.classList.remove('active'));
+            // Add active to clicked
+            btn.classList.add('active');
+            
+            const category = btn.getAttribute('data-category');
+            renderNews(category);
+        });
     });
+
+    // Initialize
+    fetchNews();
 });
