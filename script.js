@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Render Content
     function renderNews(categoryKey) {
-        // Map button data-category to JSON keys
         const keyMap = {
             'world': 'world_news',
             'us': 'us_news',
@@ -58,8 +57,18 @@ document.addEventListener('DOMContentLoaded', () => {
             'conspiracies': 'conspiracies'
         };
 
+        // Create a readable title map
+        const titleMap = {
+            'world': 'World Events',
+            'us': 'US Headlines',
+            'tech': 'Technology',
+            'finance': 'Financial Markets',
+            'conspiracies': 'The Rabbit Hole'
+        };
+
         const jsonKey = keyMap[categoryKey];
         const content = newsData[jsonKey];
+        const displayTitle = titleMap[categoryKey];
 
         // Clear container
         newsContainer.innerHTML = '';
@@ -67,25 +76,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             if (!content) {
-                newsContainer.innerHTML = `<p>No data available for ${categoryKey.toUpperCase()}.</p>`;
+                newsContainer.innerHTML = `
+                    <div class="news-card">
+                        <h2>${displayTitle}</h2>
+                        <p>No data available for this category.</p>
+                    </div>`;
             } else {
-                // Convert Markdown-style bullets to HTML if N8N sends markdown
                 const htmlContent = parseMarkdown(content);
-                newsContainer.innerHTML = `<div class="news-content">${htmlContent}</div>`;
+                // FIX: Wrap in 'news-card' to apply style.css rules
+                newsContainer.innerHTML = `
+                    <div class="news-card">
+                        <h2>${displayTitle}</h2>
+                        <div class="news-body">
+                            ${htmlContent}
+                        </div>
+                    </div>`;
             }
             newsContainer.style.opacity = 1;
         }, 200);
-    }
-
-    // Helper: Simple Markdown to HTML parser
-    function parseMarkdown(text) {
-        if (!text) return "";
-        // Convert **Bold** to <strong>
-        let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Convert - Bullet to <li>
-        html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
-        // Convert new lines to <br> or wrap list
-        return `<ul>${html}</ul>`; 
     }
 
     // 4. Tab Switching
