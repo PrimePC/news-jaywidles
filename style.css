@@ -229,3 +229,40 @@ footer {
     .header-right { width: 100%; display: flex; justify-content: flex-end; }
     .brand-title { font-size: 2rem; }
 }
+
+/* Add specific styling for the list items injected by JS */
+.news-body ul {
+    list-style: none; /* Remove default dots */
+    padding-left: 0;
+}
+
+.news-body li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 1.2rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-size: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 1rem;
+}
+
+.news-body li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+/* Custom Bullet Point */
+.news-body li::before {
+    content: "►"; /* Or use "•" */
+    position: absolute;
+    left: 0;
+    top: 2px;
+    color: var(--accent-green);
+    font-size: 0.8rem;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    /* ... existing mobile styles ... */
+}

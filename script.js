@@ -9,11 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Time and Date Display
     function updateDateTime() {
         const now = new Date();
-        // Date: Monday, Nov 24, 2024
         const dateOptions = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
         dateDisplay.innerText = now.toLocaleDateString('en-US', dateOptions).toUpperCase();
         
-        // Time: 14:05 EST
         const timeOptions = { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' };
         timeDisplay.innerText = now.toLocaleTimeString('en-US', timeOptions);
     }
@@ -29,9 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const rawData = await response.json();
             
-            // Determine structure based on N8N output
-            // We expect rawData to look like: { categories: { world: "...", us: "..." } } 
-            // Or flat: { world_news: "...", us_news: "..." }
+            // Determine structure. Your n8n "Format JSON" node returns a flat object,
+            // but we keep the check just in case the structure changes.
             newsData = rawData.categories || rawData; 
 
             // Render default category (World)
@@ -47,7 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Render Content
+    // 3. Helper: Format Content (Previously missing)
+    function formatContent(contentString) {
+        // Your n8n workflow returns strings like "<li>Item 1</li><li>Item 2</li>"
+        // We simply need to wrap this in a <ul> tag to render a proper list.
+        if (!contentString) return '';
+        return `<ul>${contentString}</ul>`;
+    }
+
+    // 4. Render Content
     function renderNews(categoryKey) {
         const keyMap = {
             'world': 'world_news',
@@ -57,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'conspiracies': 'conspiracies'
         };
 
-        // Create a readable title map
         const titleMap = {
             'world': 'World Events',
             'us': 'US Headlines',
@@ -82,8 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>No data available for this category.</p>
                     </div>`;
             } else {
-                const htmlContent = parseMarkdown(content);
-                // FIX: Wrap in 'news-card' to apply style.css rules
+                // Use the helper function defined above
+                const htmlContent = formatContent(content);
+                
                 newsContainer.innerHTML = `
                     <div class="news-card">
                         <h2>${displayTitle}</h2>
@@ -96,12 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 200);
     }
 
-    // 4. Tab Switching
+    // 5. Tab Switching
     navButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Remove active class from all
             navButtons.forEach(b => b.classList.remove('active'));
-            // Add active to clicked
             btn.classList.add('active');
             
             const category = btn.getAttribute('data-category');
