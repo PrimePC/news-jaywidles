@@ -44,12 +44,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Helper: Format Content (Previously missing)
+    // 3. Helper: Format Content
     function formatContent(contentString) {
-        // Your n8n workflow returns strings like "<li>Item 1</li><li>Item 2</li>"
-        // We simply need to wrap this in a <ul> tag to render a proper list.
         if (!contentString) return '';
-        return `<ul>${contentString}</ul>`;
+
+        // Regex to swap date and topic.
+        // It looks for: <b>[Date] (Optional "Topic:") TheTitle:</b>
+        // And replaces it with: <b>TheTitle:</b> [Date]
+        let processedContent = contentString.replace(
+            /<b>\[(.*?)\]\s*(?:Topic:\s*)?(.*?):<\/b>/g, 
+            '<b>$2:</b> <span style="font-size: 0.85em; opacity: 0.7;">[$1]</span>'
+        );
+
+        return `<ul>${processedContent}</ul>`;
     }
 
     // 4. Render Content
