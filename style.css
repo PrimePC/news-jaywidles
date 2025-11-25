@@ -266,3 +266,8 @@ footer {
 @media (max-width: 600px) {
     /* ... existing mobile styles ... */
 }
+
+.news-body b, 
+.news-body strong {
+    color: var(--accent-green);
+}
